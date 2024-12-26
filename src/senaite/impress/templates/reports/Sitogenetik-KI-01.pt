@@ -1,0 +1,977 @@
+<tal:report
+  i18n:domain="senaite.impress"
+  define="model python:view.model;
+          laboratory view/laboratory;
+          client model/Client;
+          contact model/Contact;
+
+          accredited_symbol string:★;
+          outofrange_symbol string:⚠;
+          footer python:view.get_footer_text();
+          report_options python:options.get('report_options', {});
+          attachments_per_row python:int(report_options.get('attachments_per_row', 1));
+          attachments_per_row python:attachments_per_row<1 and 1 or attachments_per_row;
+          show_remarks python:bool(report_options.get('show_remarks', False));
+          page_width options/page_width|nothing;
+          page_height options/page_height|nothing;
+          content_width options/content_width|nothing;
+          content_height options/content_height|nothing;">
+
+  <!-- Custom Report Controls -->
+  <div id="controls" class="noprint">
+    <div i18n:translate="" class="text-secondary mb-2">Custom Report Options</div>
+    <!-- Show Remarks -->
+    <div class="mb-3">
+      <div class="input-group">
+        <div class="custom-control custom-checkbox">
+          <input name="show_remarks" type="checkbox" class="custom-control-input" id="show-remarks">
+          <label class="custom-control-label" for="show-remarks">
+            Test Notları
+          </label>
+        </div>
+      </div>
+      <small class="form-text text-muted" i18n:translate="">
+        Test Notlarını göster
+      </small>
+    </div>
+    <!-- Attachments per row -->
+    <div class="mb-3">
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="attachments_per_row" i18n:translate="">
+            Her satırdaki Ek
+          </label>
+        </div>
+        <input tal:attributes="value attachments_per_row"
+               type="number"
+               class="form-control"
+               name="attachments_per_row"
+               min="1"/>
+      </div>
+      <small class="form-text text-muted" i18n:translate="">
+        Test İsteği başına bir satırda oluşturulan eklerin sayısı
+      </small>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+   console.info("######################################################################");
+   window.options = "<tal:t replace='options'/>";
+   console.log(window.options);
+   console.info("######################################################################");
+  </script>
+<!-- https://plnkr.co/edit/lWk6Yd?preview -->
+    <tal:css>
+    <style type="text/css">
+     .report * { font: 9pt; }
+     .report h1 { font-size: 140%; }
+     .report h2 { font-size: 120%; }
+     .report h3 { font-size: 90%; }
+     .report .font-size-140 { font-size: 140%; }
+     .report .font-size-120 { font-size: 120%; }
+     .report .font-size-100 { font-size: 100%; }
+     .report .colon-after:after { content: ":"; }
+     .report address { margin: 1rem 0; }
+     .report table.noborder td, .report table.noborder th { border: none; }
+     .report table.nopadding td { padding: 0; }
+     .report table td.label { padding-right: 0.3rem; font-weight: bold; }
+     .report table { border-color: black; }
+     .report table td, .report table th { border-top: 1px solid black; border-bottom: 1px solid black; 
+       padding-top: 2px; /* Varsayılan değeri azaltarak üst boşluğu küçültün */
+       padding-bottom: 2px; /* Varsayılan değeri azaltarak alt boşluğu küçültün */
+       line-height: 1.2; /* Yazının satır aralığını ayarlayarak daha sıkı bir görünüm sağlayın */
+       }
+     .report table th { border-bottom: 1px solid black; font-size: 120%;}
+     .report table.range-table td { padding: 0 0.3rem 0 0; border: none; }
+
+     .report .section-header { 
+       position: fixed;
+       margin-top: -73mm; }
+
+     .report .section-header h1 { font-size: 175%; }
+
+     .report .section-header img.logo { 
+       position: fixed;
+       margin-left: -5mm;
+       margin-top: -5mm;
+       height: 90px; }
+
+   
+     .report .barcode-hri { margin-top: -0.25em; font-size: 8pt; }
+     .report .barcode-container {
+       margin-right: 0mm;
+       margin-top: -10mm;}
+
+
+     .report .section-summaryfirst {
+       position: fixed;
+       left: 0mm;
+       margin-left: -5mm;
+       margin-right: -15mm;
+       margin-top: -55mm;
+       z-index: -1;}
+     
+      .report .section-summary { 
+       left: 0mm;
+       margin-left: -5mm;
+       margin-right: -15mm;
+       margin-top: -14mm;}
+
+     .report .section-results { 
+       margin-left: -5mm;
+       margin-right: -15mm;
+       margin-top: -5mm;
+       text-align: justify;
+       line-height: 1.2;
+       }
+
+     .report .section-results .methodtitle { 
+       font-size: 85%; }
+
+     .report .section-results .methodtitle { font-size: 85%; }
+     .report .section-resultsinterpretation {
+       margin-bottom: 10mm;
+       margin-top: 0mm;
+       margin-left: -5mm;
+       margin-right: -15mm;
+       text-align: justify;
+       line-height: 1.2;
+       }
+     
+     .report .section-signatures {
+      margin-top: -5mm;
+      vertical-align: bottom;
+     }
+     .report .section-discreeter{
+      vertical-align: bottom;
+      margin-left: -5mm;
+      margin-right: -10mm;
+      text-align: justify;
+      line-height: 1.0;
+      margin-top: -5mm;
+     }
+     
+     .report .section-footer table td { border: none; }
+     .report .section-footer {
+       position: fixed;
+       left: -10mm;
+       bottom: -20mm;
+       margin-top: 5mm;
+       margin-left: 5mm;
+       margin-right: -10mm;
+       height: 15mm;
+       width: 100%;
+       text-align: left;
+       font-size: 8pt;}
+       
+     .report .section-footer #footer-line {
+       width: 110%;
+       height: 2mm;
+       margin-left: -5mm;
+       margin-right: -5mm;
+       border-top: 1px solid black;}
+
+     <tal:block condition="python:content_width and content_height">
+     <tal:block condition="python:all([content_width, content_height])"
+                   define="cw python:float(content_width);
+                           ch python:float(content_height);">
+     /* Ensure that the images stay within the borders */
+     .report .section-attachments img {
+       max-width: <tal:t replace="python:'{:.2f}mm'.format(cw / attachments_per_row * 0.75)"/>;
+       max-height: <tal:t replace="python:'{:.2f}mm'.format(ch * 0.75)"/>;
+      
+     }
+     .report .section-attachments {
+         text-align: center;
+         margin-top: -5mm;
+     }
+     .report .section-resultsinterpretation img {
+       max-width: <tal:t replace="python:'{:.2f}mm'.format(cw)"/>;
+       max-height: <tal:t replace="python:'{:.2f}mm'.format(ch * 0.75)"/>;
+       
+     }
+     </tal:block>
+     @page {
+      size: A4;
+      margin-left: 15mm;
+      margin-right: 15mm;
+      margin-top: 85mm;
+      margin-bottom: 25mm;
+      @bottom-right {
+         vertical-align: top;
+         margin-top: 7mm;
+         margin-right: -5mm;
+         height: 13mm;
+         font-size: 9pt;
+         font-weight: bold;
+         background-color: lightgrey;
+         content: "<tal:t i18n:translate=''>Sayfa</tal:t> " counter(page) " <tal:t i18n:translate=''>/</tal:t> " counter(pages);
+       }
+     }
+    </style>
+  </tal:css>
+
+  <!-- HEADER -->
+  <tal:render condition="python:True">
+    <div class="row section-header no-gutters">
+      <!-- Header Table -->
+      <div class="w-100 mb-2">
+        <table class="w-100 mb-0 noborder">
+          <colgroup>
+            <col style="width:25%"/>
+            <col style="width:75%"/>
+          </colgroup>
+          <tr>
+            <!-- Header Left -->
+            <td class="align-middle text-left">
+              <img class="logo"
+                   tal:attributes="src string:++plone++senaite.core.static/images/Ecegen-Logo-2048-01.png"/>
+            </td>
+            <!-- Header Right -->
+           
+            <tr>
+             <td class="align-middle text-center">
+              <u><h2 style="font-weight: bold;" i18n:translate="">KROMOZOM ANALİZİ (KEMİK İLİĞİ)</h2></u>
+              <u><h2 style="font-weight: bold;" i18n:translate="">ANALİZ RAPORU</h2></u>
+              <i><h3 i18n:translate="">Chromosome Analysis (Bone Marrow) Test Report</h3></i>
+               <div class="accreditation-logo text-right"
+                 tal:define="accredited laboratory/LaboratoryAccredited;
+                             accreditation_logo laboratory/AccreditationBodyLogo"
+                 tal:condition="accredited">
+              <img class="img-fluid"
+                   style="max-height:80px;margin-top: -30mm;margin-right: -5mm;"
+                   tal:condition="accreditation_logo"
+                   tal:attributes="src accreditation_logo/absolute_url"/>
+              <img class="img-fluid"
+                   style="max-height:80px;margin-top: -30mm;margin-right: -5mm;"
+                   tal:condition="not:accreditation_logo"
+                   tal:attributes="src python:view.get_resource_url('AccreditationBodyLogo.png', prefix='bika.lims.images')"/>
+              </div>
+
+            </td>
+            </tr>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </tal:render>
+  <!-- /HEADER -->
+
+  <!-- INFO -->
+
+
+  <!-- ALERTS -->
+  <tal:render condition="python:True">
+    <div class="row section-alerts no-gutters">
+      <div class="w-100 mb-2">
+        <div class="alert alert-danger" tal:condition="model/is_invalid">
+          <div i18n:translate="">This Analysis Request has been invalidated due to erroneously published results</div>
+          <tal:invalidreport tal:define="child python:model.getRetest()"
+                             tal:condition="child">
+            <span i18n:translate="">This Analysis request has been replaced by</span>
+            <a tal:attributes="href child/absolute_url"
+               tal:content="child/getId"></a>
+          </tal:invalidreport>
+        </div>
+        <!-- <div class="alert alert-info" tal:condition="model/is_provisional">
+          <div i18n:translate="">TASLAK RAPOR</div>
+        </div> -->
+      </div>
+    </div>
+  </tal:render>
+
+
+  <!-- SUMMARY All Pages-->
+  <tal:render condition="python:True"
+              define="client model/Client;">
+    <div class="row section-summaryfirst no-gutters">
+      <div class="w-100">
+      <!-- <h3 style="position: fixed;" i18n:translate="">Doküman No: TEK.RPR.FRM.01/02.05.2024/00</h3> -->
+        <table class="table table-sm table-condensed">
+          <!-- <colgroup>
+            <col style="width:50%"/>
+            <col style="width:50%"/>
+          </colgroup> -->
+          <tr>
+                                        <h3 i18n:translate=""><strong>LABORATUVAR RUHSAT NO:</strong> GHDM-SM/34.45/01
+
+            <td style="border:none;" class="align-top pr-2">
+              <!-- Left Table -->
+              <table class="table table-sm table-condensed">
+               <!-- Patient Name -->
+
+                <tr>
+                  <td style="width:37mm;" class="label" i18n:translate="">
+                    <div>
+                      <strong>Ad Soyad</strong>
+                    </div>
+                    <div>
+                      <small>Name Surname</small>
+                    </div>
+                  </td>
+            <td style="width:30mm;"> <a tal:content="model/PatientFullName/firstname"/></td>
+           <!-- <td> <a tal:content="model/PatientFullName/firstname"/> <a tal:content="model/PatientFullName/middlename"/> <a tal:content="model/PatientFullName/lastname"/></td>-->
+                </tr>             
+                <!-- Patient DOB -->
+
+               <tr>
+                <td style="width:37mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>Doğum T. / Cinsiyet</strong>
+                  </div>
+                  <div>
+                    <small>Date of Birth / Sex</small>
+                  </div>
+                </td>
+            <td style="width:30mm"> <a tal:content="python:view.to_localized_time(model.DateOfBirth[0], long_format=0)" />
+                <a> / </a>
+              <a tal:condition="python: model.Sex == 'm'" tal:content="python: 'Erkek'" />
+              <a tal:condition="python: model.Sex == 'f'" tal:content="python: 'Kadın'" />
+              <a tal:condition="python: model.Sex == ''" tal:content="python: 'Tanımsız'" />
+
+                  </td>
+              </tr>               
+                <!-- Protokol No -->
+
+ 
+                             
+              <!-- TC No -->
+
+              <tr>
+                <td class="label" i18n:translate="">
+                  <div>
+                    <strong>Kimlik No</strong>
+                  </div>
+                  <div>
+                    <small>ID Number</small>
+                  </div>
+                </td>
+                <td>
+                  <tal:mrn condition="python:model.MedicalRecordNumber and model.MedicalRecordNumber['value']">
+                    <a tal:content="python:model.MedicalRecordNumber['value'][:1]" />*****
+                    <a tal:content="python:model.MedicalRecordNumber['value'][7:]" />
+                  </tal:mrn>
+                  <span tal:condition="python:not (model.MedicalRecordNumber and model.MedicalRecordNumber.get('value'))">
+                    ***
+                  </span>
+                </td>             
+
+              </tr>               
+                 
+                <!-- Client Name(s) -->
+                <tr>
+                  <td class="label" i18n:translate="">
+                    <div>
+                      <strong>Gönderen</strong>
+                    </div>
+                    <div>
+                      <small>Referer</small>
+                    </div>
+                  </td>
+
+            <td style="width:50mm" tal:content="client/Name|nothing"></td>
+
+
+ 
+              </table>
+            </td>
+            <td style="border:none;" class="align-top pl-2">
+              <!-- Right Table -->
+              <table class="table table-sm table-condensed ml-1"
+                     tal:define="laboratory python:view.laboratory;">
+
+             <!-- Barcode -->
+        
+              <div class="text-center float-right barcode-container">
+                        <!-- <span>İstek Numarası/Request No. </span> -->
+
+                <div class="barcode"
+                    data-code="code128"
+                    data-showHRI="true"
+                    data-barHeight="20"
+                    data-addQuietZone="true"
+                    tal:attributes="data-id model/getId">
+                </div>
+              </div>
+
+              <!-- Sample Type -->
+              
+              <!-- Sample Req Time -->
+              <tr>
+                <td style="width:42mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>Tetkik İstem Tarihi</strong>
+                  </div>
+                  <div>
+                    <small>Inspection Request Date</small>
+                  </div>
+                </td>
+                <td style="width:42mm"  tal:content="python:view.to_localized_time(model.DateSampled - 0.49 / 24, long_format= True)"></td>
+            
+              </tr>
+
+              <!-- Sample Time -->
+              <tr>
+                <td class="label" i18n:translate="">
+                  <div>
+                    <strong>Numune Alım Tarihi</strong>
+                  </div>
+                  <div>
+                    <small>Sampling Date</small>
+                  </div>
+                </td>
+            <td tal:content="python:view.to_localized_time(model.DateSampled)"></td>
+
+              </tr>
+              <!-- Sample Acceptance Time -->
+              <tr>
+                <td class="label" i18n:translate="">
+                  <div>
+                    <strong>Numune Kabul Tarihi</strong>
+                  </div>
+                  <div>
+                    <small>Sample Acceptance Date</small>
+                  </div>
+                </td>
+            <!-- <td tal:content="python:view.to_localized_time(model.getDateVerified())"></td> -->
+            <td>
+              <tal:verified condition="python:model.getDateReceived()">
+                <span tal:content="python:view.to_localized_time(model.getDateReceived())"></span>
+              </tal:verified>
+              <tal:notverified condition="not: python:model.getDateReceived()">
+                <span tal:content="python:view.to_localized_time(model.DateReceived.earliestTime()+0.59, long_format=True, domain='senaite.core')"></span>
+              </tal:notverified>
+            </td>
+
+
+              </tr>
+              <!-- Report  Time -->
+              <tr>
+                <td class="label" i18n:translate="">
+                  <div>
+                    <strong>Rapor Tarihi</strong>
+                  </div>
+                  <div>
+                    <small>Report Date</small>
+                  </div>
+                </td>
+            <td tal:content="python:view.to_localized_time(view.timestamp)"></td>
+
+              </tr>
+
+
+              </table>
+            </td>
+          </tr>
+        </table>
+
+
+
+
+      </div>
+    </div>
+  </tal:render>
+
+  <!-- SUMMARY -->
+  <tal:render condition="python:True"
+              define="client model/Client;
+                      batch model/Batch;
+                      reporter python:view.current_user;
+                      specification model/Specification;
+                      publication_specification model/PublicationSpecification;
+                      spec python:publication_specification or specification;">
+    <div class="row section-summary no-gutters">
+      <div class="w-100">
+      <!-- <h3 style="position: fixed;" i18n:translate="">Doküman No: TEK.RPR.FRM.01/02.05.2024/00</h3> -->
+        <table class="table table-sm table-condensed">
+          <colgroup>
+            <col style="width:50%"/>
+            <col style="width:50%"/>
+          </colgroup>
+          <tr>
+            <td style="border:none;" class="align-top pr-2">
+              <!-- Left Table -->
+              <table class="table table-sm table-condensed">
+ 
+ 
+                                
+
+
+                <!-- Symptoms -->
+                <tr>
+                  <td class="label" i18n:translate="">
+                    <div>
+                      <strong>Endikasyon</strong>
+                    </div>
+                    <div>
+                      <small>Referral Reason</small>
+                    </div>
+                  </td>
+
+            <!-- <td tal:content="python:Symptoms.getField"></td> -->
+                  <td>
+                    <tal:block define="symptom_titles python:[symptom.title for symptom in model.Symptoms];
+                                        symptom_text python:', '.join(symptom_titles) if symptom_titles else '-'">
+                      <span tal:content="symptom_text"></span>
+                    </tal:block>
+                  </td>
+
+
+                </tr>
+
+                <!-- Yontem -->
+                <tr>
+                  <td class="label" i18n:translate="">
+                    <div>
+                      <strong>Yöntem</strong>
+                    </div>
+                    <div>
+                      <small>Technique</small>
+                    </div>
+                  </td>
+                  <td>
+                <tal:analyses tal:repeat="analysis python:view.get_analyses_by(model)">
+                    <div   i18n:translate=""
+                           tal:define="method_title python:analysis and analysis.getMethodTitle() or '';"
+                           tal:content="structure python:view.hyphenize(method_title)"/>
+                    </tal:analyses>
+                  </td>
+
+
+                </tr>
+                 <!-- Metafaz Sayisi -->
+              <tr>
+                <td style="width:24mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>İncelenen Metafaz #</strong>
+                  </div>
+                  <div>
+                    <small># of Metaphases Analyzed</small>
+                  </div>
+                </td>
+<td style="width:36mm">
+ <tal:analyses tal:repeat="analysis python:view.get_analyses_by(model)">
+  <tal:interim_fields
+                          define="interims python:view.get_result_variables(analysis)"
+                          condition="interims">
+                        <span tal:content="python: interims and (interims[0].get('formatted_value', '') if len(interims) > 0 else '')"></span>
+                      </tal:interim_fields>
+                      </tal:analyses>
+</td>
+              </tr>
+
+
+              </table>
+            </td>
+            <td style="border:none;" class="align-top pl-2">
+              <!-- Right Table -->
+              <table class="table table-sm table-condensed ml-1"
+                     tal:define="laboratory python:view.laboratory;">
+
+
+              <!-- Sample Type -->
+
+              <!-- Sample Req Time -->
+
+
+              <!-- Sample Time -->
+
+
+              <!-- Sample Acceptance Time -->
+
+              <!-- Report  Time -->
+
+              <!-- Sample Type -->
+              <tr>
+                <td  style="width:48mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>Numune Türü</strong>
+                  </div>
+                  <div>
+                    <small>Sample Type</small>
+                  </div>
+                </td>
+            <td style="text-align: left;" tal:content="model/SampleType/title|nothing"></td>
+              </tr>
+               <!-- Bantlama -->
+              <tr>
+                <td style="width:22mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>Bantlama / Bant Düzeyi</strong>
+                  </div>
+                  <div>
+                    <small>Banding Type and level</small>
+                  </div>
+                </td>
+                <td>
+                <tal:analyses tal:repeat="analysis python:view.get_analyses_by(model)">
+                <tal:interim_fields
+                                        define="interims python:view.get_result_variables(analysis)"
+                                        condition="interims">
+                                        <span tal:content="python: interims and (interims[1].get('formatted_value', '') if len(interims) > 1 else '')"></span>
+                                    </tal:interim_fields>
+                                    </tal:analyses>
+                </td>              
+                </tr>
+              <!-- Kultur -->
+              <tr>
+                <td  style="width:30mm" class="label" i18n:translate="">
+                  <div>
+                    <strong>Yapılan / İncelenen Kültür</strong>
+                  </div>
+                  <div>
+                    <small>Number of Cultures Done/ Examined</small>
+                  </div>
+                </td>
+                <td>
+                <tal:analyses tal:repeat="analysis python:view.get_analyses_by(model)">
+                <tal:interim_fields
+                                        define="interims python:view.get_result_variables(analysis)"
+                                        condition="interims">
+                                        <span tal:content="python: interims and (interims[2].get('formatted_value', '') if len(interims) > 2 else '')"></span>
+                                    </tal:interim_fields>
+                                    </tal:analyses>
+                </td>    
+                </tr>
+              <!-- Technique -->
+              <!-- <tr>
+                <td class="label" i18n:translate="">
+                  <div>
+                    <strong>Yöntem</strong>
+                  </div>
+                  <div>
+                    <small>Technique</small>
+                  </div>
+                </td>
+             <td tal:content="model/SampleType/title|nothing"></td>
+
+              </tr> -->
+
+              </table>
+            </td>
+          </tr>
+        </table>
+
+
+
+
+      </div>
+    </div>
+  </tal:render>
+
+<!-- ATTACHMENTS -->
+  <tal:render condition="python:True">
+    <div class="row section-attachments no-gutters">
+      <tal:attachment tal:define="attachments python:model.get_sorted_attachments('r');">
+        <!-- <h2 i18n:translate=""
+            tal:condition="attachments">
+          Attachments for <span tal:replace="model/getId"/>
+        </h2> -->
+        <table class="table w-100" tal:condition="attachments">
+          <colgroup tal:condition="python:len(attachments) > 1">
+            <col tal:repeat="col python:range(attachments_per_row)"
+                  tal:attributes="style python:'width:{}%'.format(100/attachments_per_row)">
+          </colgroup>
+          <tr tal:repeat="chunk python:view.group_into_chunks(attachments, attachments_per_row)">
+            <td class="align-bottom"
+                style="border:none;padding-left:0;"
+                tal:repeat="attachment chunk">
+              <figure class="figure">
+                <img class="figure-img img-fluid"
+                     tal:attributes="src string:${attachment/absolute_url}/AttachmentFile;"/>
+                <!-- <figcaption class="figure-caption pt-2">
+                  <div class="att_for">
+                    <span i18n:translate="">Attachment for</span>
+                    <span tal:content="attachment/getTextTitle|model/getId"/>
+                  </div>
+                  <div class="att_keys">
+                    <span tal:content="attachment/AttachmentKeys"/>
+                  </div>
+                  <div class="att_filename">
+                    <span i18n:translate="">Filename:</span>
+                    <span tal:content="attachment/AttachmentFile/filename"/>
+                  </div>
+                </figcaption> -->
+              </figure>
+            </td>
+          </tr>
+        </table>
+      </tal:attachment>
+    </div>
+  </tal:render>
+  <!-- RESULTS -->
+
+<tal:t define="collection python:view.collection;
+               accredited_symbol string:★;
+               outofrange_symbol string:⚠;
+               global results_interims python:[]"
+       i18n:domain="senaite.impress">
+
+  <tal:model repeat="model collection">
+
+    <div class="section-results no-gutters">
+      <div class="w-100">
+<!--         <h1 i18n:translate>Results for <span tal:replace="model/getId"/></h1>
+ -->
+        <!-- Point of Capture -->
+        <tal:poc define="analyses_by_poc python:view.get_analyses_by_poc(model);"
+                 tal:repeat="poc analyses_by_poc">
+
+          <!-- Analysis Category -->
+          <tal:categories_in_poc define="categories_by_poc python:view.get_categories_by_poc(model)"
+                                 repeat="category python:view.sort_items(categories_by_poc.get(poc))">
+
+            <!-- Analysis in POC and Category -->
+            <table class="table table-sm table-condensed">
+              <colgroup>
+                <!-- Category -->
+                <!-- <col style="width: 80%;"> -->
+                <!-- Result -->
+                <!-- <col style="width: 20%"> -->
+                <!-- <col style="width: 20%"> -->
+                <!-- <col style="width: 20%"> -->
+                <!-- Unit -->
+<!--                 <col style="width: 15%">
+ -->                <!-- Range -->
+<!--                 <col style="width: 10%">
+ -->                <!-- Out of Range -->
+<!--                 <col style="width: 5%">
+ -->              </colgroup>
+              <thead>
+                
+              </thead>
+
+              <tbody>
+                <tal:analyses tal:repeat="analysis python:view.get_analyses_by(model, poc=poc , category=category)">
+                 
+                    
+                <div class="font-weight-bold">
+                 <span style="margin-left: 5mm;"> KARYOTİP:</span> 
+                  <span class="result" tal:content="structure python:model.get_formatted_result(analysis)">23</span>
+
+                </div>    
+                     <!-- Prob -->
+                
+                  <!-- Method -->
+                  <!-- Sonuc -->
+                
+                    <!-- Yorum -->
+                
+                </tal:analyses>
+              </tbody>
+
+              <tfoot tal:define="category_comments python:category.Comments">
+                <tr tal:condition="category_comments">
+                  <td colspan="3">
+                    <div class="category_comments"
+                         tal:content="category_comments">
+                      Category Comments
+                    </div>
+                  </td>
+                </tr>
+                <!-- <tr tal:condition="results_interims">
+                  <td colspan="3">
+                    <ul class="list-unstyled results_interims">
+                      <li tal:repeat="interims results_interims" class="mt-2">
+                        <sup tal:content="repeat/interims/number"/>
+                        <tal:interims repeat="interim interims">
+                          <tal:interim>
+                            <br tal:condition="repeat/interim/index"/>
+                            <span tal:condition="repeat/interim/index" class="pl-2"/>
+                            <span tal:content="interim/title"/>:
+                            <span tal:content="interim/formatted_value"/>
+                            <span tal:content="interim/formatted_unit"/>
+                          </tal:interim>
+                        </tal:interims>
+                      </li>
+                    </ul>
+                  </td>
+                </tr> -->
+              </tfoot>
+            </table>
+          </tal:categories_in_poc>
+
+        </tal:poc>
+      </div>
+    </div>
+  </tal:model>
+</tal:t>
+  
+  <!-- REPORT RESULTS -->
+<!--   <tal:t replace="structure python:view.render_results(context, **options)" /> -->
+
+  <!--  RESULTS INTERPRETATION -->
+  <tal:render condition="python:True">
+    <div class="section-resultsinterpretation no-gutters"
+         tal:define="ris python:model.get_resultsinterpretation();
+                     has_ri python:any(map(lambda r: r.get('richtext'), ris));">
+      <div class="" tal:condition="has_ri">
+
+        <tal:ri repeat="ri ris">
+          <!-- <h2 tal:condition="ri/richtext|nothing" tal:content="ri/title|nothing">Department</h2> -->
+          <div class="text-left" tal:content="structure ri/richtext|nothing"></div>
+        </tal:ri>
+      </div>
+    </div>
+  </tal:render>
+
+  <!-- QC RESULTS -->
+
+
+  <!-- REMARKS -->
+  <tal:render condition="show_remarks">
+    <div class="row section-remarks no-gutters"
+          tal:define="remarks model/getRemarks"
+          tal:condition="remarks">
+      <div class="remarks_history">
+        <h2 i18n:translate>Remarks for <span tal:replace="model/getId"/></h2>
+        <tal:record repeat="record remarks">
+          <div class="record" tal:attributes="id record/id;">
+            <div class="record-header border-bottom" tal:condition="record/user_id">
+              <span class="record-user" tal:content="record/user_id"/>
+              <span class="record-username" tal:content="record/user_name"/>
+              <span class="record-date" tal:content="record/created_ulocalized"/>
+            </div>
+            <div class="record-content"
+                  tal:content="structure record/html_content"></div>
+          </div>
+        </tal:record>
+      </div>
+    </div>
+  </tal:render>
+
+
+  <!--  SIGNATURES -->
+  <tal:render condition="python:True">
+    <div class="row section-signatures no-gutters">
+      <div class="w-100">
+        <table class="table table-sm table-condensed">
+          <tr>
+            <tal:manager repeat="manager python:model.managers">
+              <td style="border:none">
+                <div>
+                  <img tal:condition="manager/Signature"
+                       tal:attributes="src string:${manager/absolute_url}/Signature" style="height:75px"/>
+                </div>
+                <div class="font-weight-bold">
+                  <span tal:content="manager/Salutation"></span>
+                  <span tal:condition="manager/Salutation">&nbsp;</span>
+                  <span tal:content="manager/Fullname"></span>
+                </div>
+                <div>
+                  <span tal:content="manager/JobTitle"></span>
+                </div>
+                <div>
+                  <span tal:content="manager/DefaultDepartment/title|nothing"></span>
+                </div>
+              </td>
+            </tal:manager>
+            <tal:reporter define="reporter python:view.current_user" condition="reporter">
+              <td style="border:none">
+                <!-- <div class="label" i18n:translate="">Published by</div> -->
+                <div>
+                  
+                  <!-- <span tal:content="reporter/fullname|reporter/username"></span> -->
+                  <!-- <tal:email tal:condition="reporter/email|nothing"
+                             tal:define="email reporter/email|nothing">
+                    (<a tal:content="email"
+                        tal:attributes="href string:mailto:${email}"></a>)
+                  </tal:email> -->
+                </div>
+                
+                  <img class="w-100"
+                       tal:attributes="src string:++plone++senaite.core.static/images/imza-zeynep-ocak-02.png"/>
+
+              </td>
+            </tal:reporter>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </tal:render>
+
+  <!-- DISCREETER -->
+  <tal:render condition="python:True"
+              define="laboratory python:view.laboratory;
+                      contact model/Contact">
+    <div class="row section-discreeter no-gutters">
+      <div class="w-100 text-muted font-weight-light small">
+
+
+        <div class="discreeter-methods"
+             tal:condition="laboratory/LaboratoryAccredited">
+          <span class="accredited-symbol text-success"
+                style="font-family: Lucida Console, Courier, monospace;"
+                tal:content="accredited_symbol">
+          </span>
+          <span class="" i18n:translate="">
+            Akreditasyon kapsamındaki testler
+            <tal:block replace="laboratory/AccreditationBody" i18n:name="accreditation_body"/>
+            kapsamında akredite edilmiştir.
+          </span>
+        </div>
+         <div tal:define="confidence_level laboratory/Confidence"
+             tal:condition="confidence_level" i18n:translate="">
+             <br>
+             **Olgularda gözlemlenen klonal olmayan sayısal ya da yapısal anomaliler, testin doğal prosesinden kaynaklanabileceğinden direkt olarak neoplastik süreçle ilişkilendirilmemelidir. Endikasyonla ilişkili olabileceği düşünülen klonal olmayan anomaliler için daha ileri bir teknik olan FISH testi önerilebilir. Ayrıca, bu test ile konjenital malformasyonlar, subtelomerik delesyonlar, mikrodelesyon/duplikasyonlar, özel analizlerle saptanabilecek bazı kromozom anomalileri, düşük oranlı mozaiszmler,gonadal mozaisizm, UPD, genomik imprinting ve tek gen hastalıkları dışlanamaz.
+            Bu rapor, laboratuvarın yazılı izni olmadan kopyalanıp çoğaltılamaz. İmzasız ve kaşesiz raporlar geçersizdir. 
+            <br>
+            This report can not be reproduced the permission the laboratory. Examination reports without signature and seal are not valid.      
+             </div>
+      </div>
+    </div>
+  </tal:render>
+
+  <!-- CUSTOM FOOTER -->
+  <tal:render condition="python:footer">
+    <div class="row section-footer no-gutters">
+      <!-- Footer Line -->
+      <div id="footer-line"></div>
+      <div tal:replace="structure footer"/>
+    </div>
+  </tal:render>
+
+  <!-- DEFAULT FOOTER -->
+  <tal:render condition="python:not footer"
+              define="laboratory python:view.laboratory;">
+    <div class="row section-footer no-gutters">
+      <!-- Footer Line -->
+      <div id="footer-line"></div>
+              <!-- QR Code -->
+              <div style="position: absolute;margin-left: 152mm;margin-top: 0mm;" class="qrcode"
+                   data-size="50"
+                   data-color="#3a3"
+                   tal:attributes="data-text model/absolute_url">
+              </div>      
+      <table class="w-100">
+        <tr>
+          <td>
+            <div>
+              <strong tal:content="laboratory/Name">Lab Name</strong>
+            </div>
+              <div>
+              <span tal:content="laboratory/PhysicalAddress/address">Lab Street and Number</span>
+              / <span tal:content="laboratory/PhysicalAddress/zip">Lab ZIP</span>
+                <span tal:content="laboratory/PhysicalAddress/city">Lab City</span>
+              / <span tal:content="laboratory/PhysicalAddress/country">Lab Country</span>
+            </div>
+            <div>
+              <span i18n:translate="">Telefon</span>: +90 (212) 291 10 26
+              <span tal:content="laboratory/Phone">Lab Phone Number</span>
+              • <span i18n:translate="">Mobil</span>: +90 (530) 955 67 88
+                <span tal:content="laboratory/Fax">Lab Mobile Number</span>
+              • <a href="#" tal:attributes="href string:mailto:${laboratory/EmailAddress}">
+                <span tal:content="laboratory/EmailAddress">Lab Email</span>
+              </a>
+              • <a href="#" tal:attributes="href laboratory/LabURL">
+                <span tal:content="laboratory/LabURL">Lab URL</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+    </div>
+  </tal:render>
+
+</tal:report>
