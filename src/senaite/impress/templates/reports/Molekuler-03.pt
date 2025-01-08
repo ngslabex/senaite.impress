@@ -4,7 +4,8 @@
           laboratory view/laboratory;
           client model/Client;
           contact model/Contact;
-
+          ris python:model.get_resultsinterpretation();
+          results python:model.get_resultsinterpretation();
           accredited_symbol string:★;
           outofrange_symbol string:⚠;
           footer python:view.get_footer_text();
@@ -108,9 +109,17 @@
        left: 0mm;
        margin-left: -5mm;
        margin-right: -15mm;
-       margin-top: -55mm;
+       margin-top: -50mm;
        z-index: -1;}
-     
+    
+    .report .section-alerts {
+       position: fixed;
+       left: 0mm;
+       margin-left: -5mm;
+       margin-right: -15mm;
+       margin-top: -75mm;
+       z-index: -1;}
+       
       .report .section-summary { 
        left: 0mm;
        margin-left: -5mm;
@@ -206,7 +215,7 @@
       size: A4;
       margin-left: 15mm;
       margin-right: 15mm;
-      margin-top: 85mm;
+      margin-top: 90mm;
       margin-bottom: 25mm;
       @bottom-right {
          vertical-align: top;
@@ -484,120 +493,7 @@
   </tal:render>
 
   <!-- SUMMARY -->
-  <tal:render condition="python:True"
-              define="client model/Client;
-                      batch model/Batch;
-                      reporter python:view.current_user;
-                      specification model/Specification;
-                      publication_specification model/PublicationSpecification;
-                      spec python:publication_specification or specification;">
-    <div class="row section-summary no-gutters">
-      <div class="w-100">
-      <!-- <h3 style="position: fixed;" i18n:translate="">Doküman No: TEK.RPR.FRM.01/02.05.2024/00</h3> -->
-        <table class="table table-sm table-condensed">
-          <colgroup>
-            <col style="width:50%"/>
-            <col style="width:50%"/>
-          </colgroup>
-          <tr>
-            <td style="border:none;" class="align-top pr-2">
-              <!-- Left Table -->
-              <table class="table table-sm table-condensed">
- 
- 
-                                
 
-
-                <!-- Symptoms -->
-                <tr>
-                  <td style="width:20mm" class="label" i18n:translate="">
-                    <div>
-                      <strong>Endikasyon</strong>
-                    </div>
-                    <div>
-                      <small>Referral Reason</small>
-                    </div>
-                  </td>
-
-            <!-- <td tal:content="python:Symptoms.getField"></td> -->
-                  <td style="width:50mm;text-align: left;">
-                    <tal:block define="symptom_titles python:[symptom.title for symptom in model.Symptoms];
-                                        symptom_text python:', '.join(symptom_titles) if symptom_titles else '-'">
-                      <span tal:content="symptom_text"></span>
-                    </tal:block>
-                  </td>
-
-
-                </tr>
-
-                <!-- Yontem -->
-
-
-                 <!-- Metafaz Sayisi -->
- 
-
-
-              </table>
-            </td>
-            <td style="border:none;" class="align-top pl-2">
-              <!-- Right Table -->
-              <table class="table table-sm table-condensed ml-1"
-                     tal:define="laboratory python:view.laboratory;">
-
-
-              <!-- Sample Type -->
-
-              <!-- Sample Req Time -->
-
-
-              <!-- Sample Time -->
-
-
-              <!-- Sample Acceptance Time -->
-
-              <!-- Report  Time -->
-
-              <!-- Sample Type -->
-              <tr>
-                <td style="width:42mm;" class="label" i18n:translate="">
-                  <div>
-                    <strong>Numune Türü</strong>
-                  </div>
-                  <div>
-                    <small>Sample Type</small>
-                  </div>
-                </td>
-            <td style="text-align: left;width:42mm" tal:content="model/SampleType/title|nothing"></td>
-              </tr>
-               <!-- Bantlama -->
-
-              <!-- Kultur -->
-
-              <!-- Technique -->
-              <!-- <tr>
-                <td class="label" i18n:translate="">
-                  <div>
-                    <strong>Yöntem</strong>
-                  </div>
-                  <div>
-                    <small>Technique</small>
-                  </div>
-                </td>
-             <td tal:content="model/SampleType/title|nothing"></td>
-
-              </tr> -->
-
-              </table>
-            </td>
-          </tr>
-        </table>
-
-
-
-
-      </div>
-    </div>
-  </tal:render>
 
 <!-- ATTACHMENTS -->
 
@@ -605,128 +501,77 @@
   <!-- RESULTS -->
 
   <!-- REPORT RESULTS -->
-<!--   <tal:t replace="structure python:view.render_results(context, **options)" /> -->
+  
+<tal:block define="filtered_results python:[ri for ri in results if ri.get('richtext') and ri.get('uid') != 'general']">
 
-  <!--  RESULTS INTERPRETATION -->
-  <tal:render condition="python:True">
-    <div class="section-resultsinterpretation no-gutters"
-         tal:define="ris python:model.get_resultsinterpretation();
-                     has_ri python:any(map(lambda r: r.get('richtext'), ris));">
-      <div class="" tal:condition="has_ri">
-
-        <tal:ri repeat="ri ris">
-          <!-- <h2 tal:condition="ri/richtext|nothing" tal:content="ri/title|nothing">Department</h2> -->
-          <div class="text-left" tal:content="structure ri/richtext|nothing"></div>
-        </tal:ri>
+  <tal:block condition="python:len(filtered_results) > 0">
+    <tal:block repeat="ri python:filtered_results">
+      <!-- Her sayfa için sonuçları göster -->
+      <div class="section-resultsinterpretation no-gutters" style="page-break-before: always;">
+        <div class="text-left" tal:content="structure ri/richtext|nothing"></div>
       </div>
-    </div>
-  </tal:render>
 
-  <!-- QC RESULTS -->
-
-
-  <!-- REMARKS -->
-  <tal:render condition="show_remarks">
-    <div class="row section-remarks no-gutters"
-          tal:define="remarks model/getRemarks"
-          tal:condition="remarks">
-      <div class="remarks_history">
-        <h2 i18n:translate>Remarks for <span tal:replace="model/getId"/></h2>
-        <tal:record repeat="record remarks">
-          <div class="record" tal:attributes="id record/id;">
-            <div class="record-header border-bottom" tal:condition="record/user_id">
-              <span class="record-user" tal:content="record/user_id"/>
-              <span class="record-username" tal:content="record/user_name"/>
-              <span class="record-date" tal:content="record/created_ulocalized"/>
-            </div>
-            <div class="record-content"
-                  tal:content="structure record/html_content"></div>
-          </div>
-        </tal:record>
-      </div>
-    </div>
-  </tal:render>
-
-
-  <!--  SIGNATURES -->
-  <tal:render condition="python:True">
-    <div class="row section-signatures no-gutters">
-      <div class="w-100">
-        <table class="table table-sm table-condensed">
-          <tr>
-            <tal:manager repeat="manager python:model.managers">
-              <td style="border:none">
-                <div>
-                  <img tal:condition="manager/Signature"
-                       tal:attributes="src string:${manager/absolute_url}/Signature" style="height:75px"/>
-                </div>
-                <div class="font-weight-bold">
-                  <span tal:content="manager/Salutation"></span>
-                  <span tal:condition="manager/Salutation">&nbsp;</span>
-                  <span tal:content="manager/Fullname"></span>
-                </div>
-                <div>
-                  <span tal:content="manager/JobTitle"></span>
-                </div>
-                <div>
-                  <span tal:content="manager/DefaultDepartment/title|nothing"></span>
-                </div>
-              </td>
-            </tal:manager>
-            <tal:reporter define="reporter python:view.current_user" condition="reporter">
-              <td style="border:none">
-                <!-- <div class="label" i18n:translate="">Published by</div> -->
-                <div>
-                  
-                  <!-- <span tal:content="reporter/fullname|reporter/username"></span> -->
-                  <!-- <tal:email tal:condition="reporter/email|nothing"
-                             tal:define="email reporter/email|nothing">
-                    (<a tal:content="email"
-                        tal:attributes="href string:mailto:${email}"></a>)
-                  </tal:email> -->
-                </div>
-                
+      <!-- İmza bloğunu her sayfa için ekle -->
+      <div class="row section-signatures no-gutters">
+        <div class="w-100">
+          <table class="table table-sm table-condensed">
+            <tr>
+              <tal:manager repeat="manager python:model.managers">
+                <td style="border:none">
+                  <div>
+                    <img tal:condition="manager/Signature"
+                         tal:attributes="src string:${manager/absolute_url}/Signature" style="height:75px"/>
+                  </div>
+                  <div class="font-weight-bold">
+                    <span tal:content="manager/Salutation"></span>
+                    <span tal:condition="manager/Salutation">&nbsp;</span>
+                    <span tal:content="manager/Fullname"></span>
+                  </div>
+                  <div>
+                    <span tal:content="manager/JobTitle"></span>
+                  </div>
+                  <div>
+                    <span tal:content="manager/DefaultDepartment/title|nothing"></span>
+                  </div>
+                </td>
+              </tal:manager>
+              <tal:reporter define="reporter python:view.current_user" condition="reporter">
+                <td style="border:none">
                   <img class="w-100"
                        tal:attributes="src string:++plone++senaite.core.static/images/imza-zeynep-ocak-02.png"/>
-
-              </td>
-            </tal:reporter>
-          </tr>
-        </table>
-      </div>
-    </div>
-  </tal:render>
-
-  <!-- DISCREETER -->
-  <tal:render condition="python:True"
-              define="laboratory python:view.laboratory;
-                      contact model/Contact">
-    <div class="row section-discreeter no-gutters">
-      <div class="w-100 text-muted font-weight-light small">
-
-
-        <div class="discreeter-methods"
-             tal:condition="laboratory/LaboratoryAccredited">
-          <span class="accredited-symbol text-success"
-                style="font-family: Lucida Console, Courier, monospace;"
-                tal:content="accredited_symbol">
-          </span>
-          <span class="" i18n:translate="">
-            Akreditasyon kapsamındaki testler
-            <tal:block replace="laboratory/AccreditationBody" i18n:name="accreditation_body"/>
-            kapsamında akredite edilmiştir.
-          </span>
+                </td>
+              </tal:reporter>
+            </tr>
+          </table>
         </div>
-         <div tal:define="confidence_level laboratory/Confidence"
-             tal:condition="confidence_level" i18n:translate="">
-             <br>
-             **Bu genetik test sonucu; nadir genetik varyantlar, büyük delesyon/duplikasyonlar, rekombinasyon gibi DNA/RNA yapısına özgün nedenlerden kaynaklanan, analiz edilen bölgeler dışında bulunabilecek değişiklikleri (regülatör, promotör bölge, derin intronik bölge vb.), mozaisizmi dışlamamaktadır. Bu testin sonucunu allel drop out, primerlerin bağlanma bölgesinde bulunacak SNP’ler vb gibi teknik sorunlar etkileyebilmektedir. DNA/RNA tabanlı genetik testlerin teknik özellikleri/kısıtlamaları dahilinde yalancı pozitif/negatif sonuç verme ihtimali mevcuttur. Bu testin yaklaşık güvenilirliği %98 olarak bildirilmiştir. Bu test yukarıda belirtilen örnek tipinden çalışılmıştır ve bu örnek belirtilen isme kayıtlı olarak laboratuar birimimize iletilmiş veya merkezimize gönderilmiştir. Yapılan test numune doğrulama işlemini içermemektedir. Bu rapor, laboratuarın yazılı izni olmadan kısmen de olsa kopyalanıp çoğaltılamaz, bilimsel amaçlı kullanılamaz. İmzasız ve/veya kaşesiz raporlar geçersizdir. Bu test sonucunda elde edilen polimorfik değişikliklere laboratuar kayıtlarından ulaşılabilir.
-            <br>
-
-             </div>
       </div>
-    </div>
-  </tal:render>
+
+      <!-- DISCREETER kısmını her sayfanın altına ekle -->
+      <div class="row section-discreeter no-gutters">
+        <div class="w-100 text-muted font-weight-light small">
+          <div class="discreeter-methods"
+               tal:condition="laboratory/LaboratoryAccredited">
+            <span class="accredited-symbol text-success"
+                  style="font-family: Lucida Console, Courier, monospace;"
+                  tal:content="accredited_symbol">
+            </span>
+            <span class="" i18n:translate="">
+              Akreditasyon kapsamındaki testler
+              <tal:block replace="laboratory/AccreditationBody" i18n:name="accreditation_body"/>
+              kapsamında akredite edilmiştir.
+            </span>
+          </div>
+          <div tal:define="confidence_level laboratory/Confidence"
+               tal:condition="confidence_level" i18n:translate="">
+            <br>
+             **Bu genetik test sonucu; nadir genetik varyantlar, büyük delesyon/duplikasyonlar, rekombinasyon gibi DNA/RNA yapısına özgün nedenlerden kaynaklanan, analiz edilen bölgeler dışında bulunabilecek değişiklikleri (regülatör, promotör bölge, derin intronik bölge vb.), mozaisizmi dışlamamaktadır. Bu testin sonucunu allel drop out, primerlerin bağlanma bölgesinde bulunacak SNP’ler vb gibi teknik sorunlar etkileyebilmektedir. DNA/RNA tabanlı genetik testlerin teknik özellikleri/kısıtlamaları dahilinde yalancı pozitif/negatif sonuç verme ihtimali mevcuttur. Bu testin yaklaşık güvenilirliği %98 olarak bildirilmiştir. Bu test yukarıda belirtilen örnek tipinden çalışılmıştır ve bu örnek belirtilen isme kayıtlı olarak laboratuar birimimize iletilmiş veya merkezimize gönderilmiştir. Yapılan test numune doğrulama işlemini içermemektedir. Bu rapor, laboratuarın yazılı izni olmadan kısmen de olsa kopyalanıp çoğaltılamaz, bilimsel amaçlı kullanılamaz. İmzasız ve/veya kaşesiz raporlar geçersizdir. Bu test sonucunda elde edilen polimorfik değişikliklere laboratuar kayıtlarından ulaşılabilir.
+ <br>
+          </div>
+        </div>
+      </div>
+    </tal:block>
+  </tal:block>
+</tal:block>
 
   <!-- CUSTOM FOOTER -->
   <tal:render condition="python:footer">

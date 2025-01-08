@@ -510,9 +510,8 @@
 
             <!-- <td tal:content="python:Symptoms.getField"></td> -->
                   <td>
-                    <tal:block define="symptom_titles python:[symptom.title for symptom in model.Symptoms];
-                                        symptom_text python:', '.join(symptom_titles) if symptom_titles else '-'">
-                      <span tal:content="symptom_text"></span>
+                    <tal:block define="env_conditions python:model.getEnvironmentalConditions();">
+                      <span tal:replace="python:env_conditions if env_conditions else '-'"></span>
                     </tal:block>
                   </td>
 

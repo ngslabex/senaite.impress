@@ -21,7 +21,7 @@
 from bika.lims.interfaces import IBikaLIMS
 from zope.interface import Attribute
 from zope.interface import Interface
-from senaite.lims.interfaces import ISenaiteLIMS
+
 
 class ILayer(IBikaLIMS):
     """Layer Interface
