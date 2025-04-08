@@ -18,21 +18,16 @@
 # Copyright 2018-2025 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
-from bika.lims import api
-from senaite.impress.interfaces import IReportView
-from zope.interface import implements
+from senaite.impress import logger
+
+PROFILE_ID = "profile-senaite.impress:default"
 
 
-class ReportView(object):
-    """Generic Report View
+def upgrade(portal_setup):
+    """Update to version 2.7.0
 
-    Note: This is also the base class for the Multi Report View
+    :param portal_setup: The portal_setup tool
     """
-    implements(IReportView)
-
-    def __init__(self, *args, **kwargs):
-        # needed for template rendering
-        self.context = api.get_portal()
-
-    def render(self, template, **kw):
-        raise NotImplementedError("Must be implemented by subclass")
+    logger.info("Run all import steps from SENAITE IMPRESS ...")
+    portal_setup.runAllImportStepsFromProfile(PROFILE_ID)
+    logger.info("Run all import steps from SENAITE IMPRESS [DONE]")
