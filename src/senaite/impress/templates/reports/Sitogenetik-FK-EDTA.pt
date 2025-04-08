@@ -523,10 +523,10 @@
               <tr>
                 <td style="width:38mm" class="label" i18n:translate="">
                   <div>
-                    <strong>İncelenen Metafaz #</strong>
+                    <strong>İncelenen Hücre #</strong>
                   </div>
                   <div>
-                    <small># of Metaphases Analyzed</small>
+                    <small># of Cells Analyzed</small>
                   </div>
                 </td>
                 <td style="width:50mm;text-align: left;">
