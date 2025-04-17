@@ -224,7 +224,7 @@
                       <small>Name Surname</small>
                     </div>
                   </td>
-            <td> <a tal:content="model/PatientFullName/firstname"/></td>
+            <td> <a tal:content="model/PatientFullName"/></td>
            <!-- <td> <a tal:content="model/PatientFullName/firstname"/> <a tal:content="model/PatientFullName/middlename"/> <a tal:content="model/PatientFullName/lastname"/></td>-->
 
                 </tr>
