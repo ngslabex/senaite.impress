@@ -148,7 +148,7 @@
       margin-right: -10mm;
       text-align: justify;
       line-height: 1.0;
-      margin-top: -5mm;
+      margin-top: 0mm;
      }
      
      .report .section-footer table td { border: none; }
@@ -234,10 +234,16 @@
               <u><h2 style="font-weight: bold;" i18n:translate="">KROMOZOM ANALİZİ (KEMİK İLİĞİ)</h2></u>
               <u><h2 style="font-weight: bold;" i18n:translate="">ANALİZ RAPORU</h2></u>
               <i><h3 i18n:translate="">Chromosome Analysis (Bone Marrow) Test Report</h3></i>
+               <!-- Akreditasyon Guncelleme Baslangic-->
                <div class="accreditation-logo text-right"
-                 tal:define="accredited laboratory/LaboratoryAccredited;
-                             accreditation_logo laboratory/AccreditationBodyLogo"
+                 tal:define="accredited python:any(
+                      getattr(analysis.getObject().getService(), 'getAccredited', lambda: False)()
+                      for analysis in model.getAnalyses()
+                      if hasattr(analysis.getObject(), 'getService') and analysis.getObject().getService()
+                  );
+                  accreditation_logo laboratory/AccreditationBodyLogo"
                  tal:condition="accredited">
+                 <!-- Akreditasyon Guncelleme Son -->
               <img class="img-fluid"
                    style="max-height:80px;margin-top: -30mm;margin-right: -5mm;"
                    tal:condition="accreditation_logo"
@@ -898,18 +904,23 @@
       <div class="w-100 text-muted font-weight-light small">
 
 
-        <div class="discreeter-methods"
-             tal:condition="laboratory/LaboratoryAccredited">
-          <span class="accredited-symbol text-success"
-                style="font-family: Lucida Console, Courier, monospace;"
-                tal:content="accredited_symbol">
-          </span>
-          <span class="" i18n:translate="">
-            Akreditasyon kapsamındaki testler
-            <tal:block replace="laboratory/AccreditationBody" i18n:name="accreditation_body"/>
-            kapsamında akredite edilmiştir.
-          </span>
-        </div>
+        <!-- Akreditasyon Guncelleme Baslangic-->
+          <div class="discreeter-methods"
+              tal:define="accredited python:any(
+                              getattr(analysis.getObject().getService(), 'getAccredited', lambda: False)()
+                              for analysis in model.getAnalyses()
+                              if hasattr(analysis.getObject(), 'getService') and analysis.getObject().getService()
+                          )"
+              tal:condition="accredited">
+            <span class="accredited-symbol text-success"
+                  style="font-family: Lucida Console, Courier, monospace;"
+                  tal:content="accredited_symbol">
+            </span>
+            <span i18n:translate="">
+              <tal:block replace="laboratory/AccreditationPageHeader" i18n:name="AccreditationPageHeader"/>
+            </span>
+          </div>
+          <!-- Akreditasyon Guncelleme Son-->
          <div tal:define="confidence_level laboratory/Confidence"
              tal:condition="confidence_level" i18n:translate="">
              <br>
